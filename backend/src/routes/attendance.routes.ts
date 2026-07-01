@@ -10,7 +10,7 @@ router.use(authenticateToken);
 // Helper to get active placement for student
 async function getActivePlacement(studentId?: string) {
   if (!studentId) return null;
-  return prisma.internshipPlacement.findFirst({
+  let placement = await prisma.internshipPlacement.findFirst({
     where: {
       studentId,
       status: 'active',
@@ -21,6 +21,35 @@ async function getActivePlacement(studentId?: string) {
       academicAdvisor: { include: { user: true } },
     },
   });
+
+  if (!placement) {
+    const defaultMentor = await prisma.companyMentor.findFirst();
+    const defaultAdvisor = await prisma.academicAdvisor.findFirst();
+
+    if (defaultMentor && defaultAdvisor) {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 3); // 3 months duration
+
+      placement = await prisma.internshipPlacement.create({
+        data: {
+          studentId,
+          companyMentorId: defaultMentor.id,
+          academicAdvisorId: defaultAdvisor.id,
+          startDate,
+          endDate,
+          status: 'active',
+        },
+        include: {
+          student: { include: { user: true } },
+          companyMentor: { include: { user: true } },
+          academicAdvisor: { include: { user: true } },
+        },
+      });
+    }
+  }
+
+  return placement;
 }
 
 // Helper to get today's date range (midnight to midnight)

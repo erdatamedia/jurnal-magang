@@ -36,6 +36,41 @@ function saveBase64Image(base64Data: string, destDir: string): string {
   return `/uploads/${filename}`;
 }
 
+// Helper to get active placement for student (with auto-assign fallback)
+async function getActivePlacement(studentId?: string) {
+  if (!studentId) return null;
+  let placement = await prisma.internshipPlacement.findFirst({
+    where: {
+      studentId,
+      status: 'active',
+    },
+  });
+
+  if (!placement) {
+    const defaultMentor = await prisma.companyMentor.findFirst();
+    const defaultAdvisor = await prisma.academicAdvisor.findFirst();
+
+    if (defaultMentor && defaultAdvisor) {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 3); // 3 months duration
+
+      placement = await prisma.internshipPlacement.create({
+        data: {
+          studentId,
+          companyMentorId: defaultMentor.id,
+          academicAdvisorId: defaultAdvisor.id,
+          startDate,
+          endDate,
+          status: 'active',
+        },
+      });
+    }
+  }
+
+  return placement;
+}
+
 // GET / - View journal entries history
 router.get('/', async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -44,12 +79,7 @@ router.get('/', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    const placement = await prisma.internshipPlacement.findFirst({
-      where: {
-        studentId: req.user.studentId,
-        status: 'active',
-      },
-    });
+    const placement = await getActivePlacement(req.user.studentId);
 
     if (!placement) {
       res.status(400).json({ message: 'No active internship placement found' });
@@ -89,12 +119,7 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    const placement = await prisma.internshipPlacement.findFirst({
-      where: {
-        studentId: req.user.studentId,
-        status: 'active',
-      },
-    });
+    const placement = await getActivePlacement(req.user.studentId);
 
     if (!placement) {
       res.status(400).json({ message: 'No active internship placement found' });
