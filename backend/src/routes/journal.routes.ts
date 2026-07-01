@@ -213,8 +213,8 @@ router.get('/mentor', async (req: AuthenticatedRequest, res: Response) => {
 // PUT /:id/status - Approve or reject a journal entry with feedback
 router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
   try {
-    if (!req.user || req.user.role !== 'mentor') {
-      res.status(403).json({ message: 'Only mentors can review journals' });
+    if (!req.user || (req.user.role !== 'mentor' && req.user.role !== 'advisor')) {
+      res.status(403).json({ message: 'Only mentors and advisors can review journals' });
       return;
     }
 
@@ -225,7 +225,7 @@ router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    // Verify journal exists and belongs to a placement assigned to this mentor
+    // Verify journal exists and belongs to a placement assigned to this mentor or advisor
     const journal = (await prisma.journalEntry.findUnique({
       where: { id: req.params.id as string },
       include: {
@@ -238,7 +238,15 @@ router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
       return;
     }
 
-    if (journal.placement.companyMentorId !== req.user.mentorId) {
+    const isMentor = req.user.role === 'mentor';
+    const isAdvisor = req.user.role === 'advisor';
+
+    if (isMentor && journal.placement.companyMentorId !== req.user.mentorId) {
+      res.status(403).json({ message: 'You are not authorized to review this student\'s journal' });
+      return;
+    }
+
+    if (isAdvisor && journal.placement.academicAdvisorId !== req.user.advisorId) {
       res.status(403).json({ message: 'You are not authorized to review this student\'s journal' });
       return;
     }
@@ -258,6 +266,58 @@ router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
   } catch (error) {
     res.status(500).json({
       message: 'Failed to update journal status',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// GET /advisor - Get all journals of students assigned to this academic advisor
+router.get('/advisor', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'advisor') {
+      res.status(403).json({ message: 'Only academic advisors can view student journals' });
+      return;
+    }
+
+    const advisorId = req.user.advisorId;
+    if (!advisorId) {
+      res.status(400).json({ message: 'Advisor profile ID not found' });
+      return;
+    }
+
+    const placements = await prisma.internshipPlacement.findMany({
+      where: { academicAdvisorId: advisorId },
+      include: {
+        student: {
+          include: { user: true }
+        },
+        journalEntries: {
+          orderBy: { date: 'desc' }
+        }
+      }
+    });
+
+    const journalsWithStudent = placements.flatMap((placement) => {
+      return placement.journalEntries.map((j) => ({
+        id: j.id,
+        date: j.date,
+        taskDescription: j.taskDescription,
+        learningOutcomes: j.learningOutcomes,
+        hoursWorked: j.hoursWorked,
+        attachmentPath: j.attachmentPath,
+        status: j.status,
+        mentorFeedback: j.mentorFeedback,
+        studentName: placement.student.user.name,
+        nim: placement.student.nim,
+        department: placement.student.department,
+        class: placement.student.class
+      }));
+    });
+
+    res.json({ journals: journalsWithStudent });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to retrieve student journals',
       error: error instanceof Error ? error.message : String(error)
     });
   }
