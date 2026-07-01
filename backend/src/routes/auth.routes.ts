@@ -342,6 +342,51 @@ router.put('/mentor/profile', authenticateToken, async (req: AuthenticatedReques
   }
 });
 
+// PUT /advisor/profile - Update academic advisor profile
+router.put('/advisor/profile', authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'advisor') {
+      res.status(403).json({ message: 'Only advisors can update profile' });
+      return;
+    }
+
+    const { name, nidn, phone } = req.body;
+
+    if (!nidn) {
+      res.status(400).json({ message: 'NIDN is required' });
+      return;
+    }
+
+    const userId = req.user.id;
+
+    const updatedAdvisor = await prisma.$transaction(async (tx) => {
+      if (name) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { name },
+        });
+      }
+      return tx.academicAdvisor.update({
+        where: { userId },
+        data: {
+          nidn,
+          phone: phone || null,
+        },
+      });
+    });
+
+    res.json({
+      message: 'Advisor profile updated successfully',
+      profile: updatedAdvisor,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to update advisor profile',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
 // GET /mentors - Get list of mentors
 router.get('/mentors', async (req, res: Response) => {
   try {

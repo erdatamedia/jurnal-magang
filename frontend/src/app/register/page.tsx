@@ -250,7 +250,7 @@ export default function RegisterPage() {
 
               <div>
                 <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
-                  Dosen Pembimbing (Kampus)
+                  Pembimbing Akademik (Kampus)
                 </label>
                 <select
                   required
@@ -259,7 +259,7 @@ export default function RegisterPage() {
                   className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-2.5 text-slate-300 focus:outline-none focus:border-violet-500 transition duration-300 text-sm cursor-pointer"
                 >
                   {advisors.length === 0 ? (
-                    <option value="">Memuat dosen...</option>
+                    <option value="">Memuat pembimbing...</option>
                   ) : (
                     advisors.map((a) => (
                       <option key={a.id} value={a.id} className="bg-slate-900 text-slate-300">

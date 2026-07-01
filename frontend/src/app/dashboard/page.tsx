@@ -105,10 +105,17 @@ export default function DashboardPage() {
   const [studentJournals, setStudentJournals] = useState<StudentJournalRecord[]>([]);
   const [studentAttendance, setStudentAttendance] = useState<StudentAttendanceRecord[]>([]);
   const [mentorTab, setMentorTab] = useState<'jurnal' | 'absensi' | 'settings'>('jurnal');
-  const [advisorTab, setAdvisorTab] = useState<'jurnal' | 'absensi'>('jurnal');
+  const [advisorTab, setAdvisorTab] = useState<'jurnal' | 'absensi' | 'settings'>('jurnal');
   const [selectedJournal, setSelectedJournal] = useState<StudentJournalRecord | null>(null);
   const [feedbackText, setFeedbackText] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Advisor Profile Edit States
+  const [advisorName, setAdvisorName] = useState('');
+  const [advisorNidn, setAdvisorNidn] = useState('');
+  const [advisorPhone, setAdvisorPhone] = useState('');
+  const [advisorSuccess, setAdvisorSuccess] = useState(false);
+  const [advisorError, setAdvisorError] = useState('');
 
   // Logout handler
   const handleLogout = () => {
@@ -212,6 +219,55 @@ export default function DashboardPage() {
     }
   };
 
+  // Advisor Profile Update Handler
+  const handleUpdateAdvisorProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdvisorError('');
+    setAdvisorSuccess(false);
+    setActionLoading(true);
+    try {
+      const host = typeof window !== 'undefined'
+        ? (window.location.origin.includes('localhost') ? 'http://localhost:5005' : window.location.origin)
+        : 'http://localhost:5005';
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${host}/api/auth/advisor/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: advisorName,
+          nidn: advisorNidn,
+          phone: advisorPhone
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || 'Gagal memperbarui profil.');
+      }
+
+      const data = await response.json();
+      
+      // Sync localstorage profile
+      const savedUserStr = localStorage.getItem('user');
+      if (savedUserStr) {
+        const savedUser = JSON.parse(savedUserStr);
+        savedUser.name = advisorName;
+        savedUser.profile = data.profile;
+        localStorage.setItem('user', JSON.stringify(savedUser));
+      }
+
+      setAdvisorSuccess(true);
+      refreshProfile();
+    } catch (err: any) {
+      setAdvisorError(err.message || 'Gagal memperbarui profil.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
@@ -235,11 +291,20 @@ export default function DashboardPage() {
     }
   }, [router, fetchStudentData, fetchMentorData, fetchAdvisorData]);
 
+  // Sync Advisor profile local states when user updates
+  useEffect(() => {
+    if (user && user.role === 'advisor') {
+      setAdvisorName(user.name || '');
+      setAdvisorNidn(user.profile?.nidn || '');
+      setAdvisorPhone(user.profile?.phone || '');
+    }
+  }, [user]);
+
   const isStudent = user?.role === 'student';
   const isMentor = user?.role === 'mentor';
   const isAdvisor = user?.role === 'advisor';
 
-  // Dynamic branding color theme (for advisors we fallback to yellow premium)
+  // Dynamic branding color theme
   const themeColor = isStudent
     ? (placement?.companyMentor?.themeColor || 'yellow')
     : (user?.profile?.themeColor || 'yellow');
@@ -270,7 +335,7 @@ export default function DashboardPage() {
             <div className="flex items-center space-x-2">
               <span className={`h-2.5 w-2.5 rounded-full animate-pulse ${theme.glowPulse}`} />
               <span className={`text-xs font-semibold uppercase tracking-widest ${theme.accentText}`}>
-                {isStudent ? 'Portal Siswa' : isMentor ? 'Portal Pembimbing Lapangan' : 'Portal Dosen Pembimbing'}
+                {isStudent ? 'Portal Siswa' : isMentor ? 'Portal Pembimbing Lapangan' : 'Portal Pembimbing Akademik'}
               </span>
             </div>
             <h1 className="text-2xl font-bold text-slate-100 mt-1">{user?.name}</h1>
@@ -294,7 +359,7 @@ export default function DashboardPage() {
             {isAdvisor && (
               <p className="text-xs text-slate-400 mt-0.5">
                 NIDN: <span className="text-slate-300 font-medium">{user?.profile.nidn || '-'}</span> • Jabatan:{' '}
-                <span className="text-slate-300 font-medium">Dosen Pembimbing Akademik</span>
+                <span className="text-slate-300 font-medium">Pembimbing Akademik</span>
               </p>
             )}
           </div>
@@ -349,7 +414,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="border-t md:border-t-0 md:border-l border-white/5 pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
-                  <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold block">Dosen Pembimbing</span>
+                  <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold block">Pembimbing Akademik</span>
                   <p className="text-sm font-bold text-slate-200 mt-0.5">
                     {placement.academicAdvisor.user.name}
                   </p>
@@ -742,7 +807,7 @@ export default function DashboardPage() {
         {isAdvisor && (
           <div className="space-y-8">
             {/* Tabs for Advisor */}
-            <div className="flex border-b border-white/5 mb-6 max-w-sm">
+            <div className="flex border-b border-white/5 mb-6 max-w-md">
               <button
                 onClick={() => setAdvisorTab('jurnal')}
                 className={`flex-1 pb-3 text-sm font-semibold border-b-2 tracking-wide transition duration-300 cursor-pointer ${
@@ -763,7 +828,134 @@ export default function DashboardPage() {
               >
                 📅 Riwayat Presensi Siswa
               </button>
+              <button
+                onClick={() => setAdvisorTab('settings')}
+                className={`flex-1 pb-3 text-sm font-semibold border-b-2 tracking-wide transition duration-300 cursor-pointer ${
+                  advisorTab === 'settings'
+                    ? `${theme.activeTabBorder} font-bold`
+                    : 'border-transparent text-slate-500 hover:text-slate-400'
+                }`}
+              >
+                ⚙️ Pengaturan Profil
+              </button>
             </div>
+
+            {advisorTab === 'settings' && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Advisor Profile Form */}
+                <div className="lg:col-span-6">
+                  <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div className={`absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 ${theme.accentGlow} rounded-full blur-2xl pointer-events-none`} />
+
+                    <h3 className="text-lg font-bold text-slate-200 mb-6 border-b border-white/5 pb-3">
+                      👤 Pengaturan Profil Pembimbing
+                    </h3>
+
+                    {advisorError && (
+                      <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-xl text-xs">
+                        {advisorError}
+                      </div>
+                    )}
+
+                    {advisorSuccess && (
+                      <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs">
+                        Profil Pembimbing berhasil diperbarui!
+                      </div>
+                    )}
+
+                    <form onSubmit={handleUpdateAdvisorProfile} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                          Nama Lengkap Anda (Pembimbing Akademik)
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={advisorName}
+                          onChange={(e) => setAdvisorName(e.target.value)}
+                          placeholder="Nama Pembimbing"
+                          className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                            NIDN / Kode Pegawai
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={advisorNidn}
+                            onChange={(e) => setAdvisorNidn(e.target.value)}
+                            placeholder="NIDN"
+                            className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                            No. Telepon (WA)
+                          </label>
+                          <input
+                            type="text"
+                            value={advisorPhone}
+                            onChange={(e) => setAdvisorPhone(e.target.value)}
+                            placeholder="Contoh: 0812xxxx"
+                            className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={actionLoading}
+                        className={`w-full mt-4 py-3.5 ${theme.buttonGradient} active:scale-[0.98] rounded-2xl text-xs font-semibold tracking-wider shadow-lg transition-all duration-300 cursor-pointer text-center`}
+                      >
+                        {actionLoading ? 'Menyimpan Perubahan...' : 'SIMPAN PERUBAHAN PROFILE'}
+                      </button>
+                    </form>
+                  </div>
+                </div>
+
+                {/* Right Column details card */}
+                <div className="lg:col-span-6">
+                  <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                    <div className={`absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 ${theme.accentGlow} rounded-full blur-2xl pointer-events-none`} />
+
+                    <h3 className="text-lg font-bold text-slate-200 mb-6 border-b border-white/5 pb-3">
+                      🎓 Status Bimbingan Magang
+                    </h3>
+
+                    <div className="space-y-4 text-sm">
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-slate-500 font-medium">Mahasiswa Terbimbing</span>
+                        <span className="font-semibold text-emerald-400">
+                          {Array.from(new Set(studentJournals.map(j => j.nim))).length} Orang
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-slate-500 font-medium">Nama Pembimbing</span>
+                        <span className="font-semibold text-slate-300">{user.name}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-slate-500 font-medium">NIDN</span>
+                        <span className="font-semibold text-slate-300">{user.profile.nidn || '-'}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-3 border-b border-white/5">
+                        <span className="text-slate-500 font-medium">No. Telepon / WA</span>
+                        <span className="font-semibold text-slate-300">{user.profile.phone || '-'}</span>
+                      </div>
+
+                      <div className={`border rounded-2xl p-4 text-xs text-slate-400 mt-6 ${theme.accentBorder} ${theme.accentGlow}`}>
+                        <span className={`font-semibold block mb-1 ${theme.accentText}`}>💡 Petunjuk:</span>
+                        Sebagai Pembimbing Akademik, Anda dapat memantau jurnal harian, log kehadiran, dan memberikan persetujuan serta saran bimbingan akademik pada lembar jurnal kegiatan mahasiswa Anda.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {advisorTab === 'jurnal' && (
               <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl">
@@ -823,7 +1015,7 @@ export default function DashboardPage() {
                               }}
                               className={`w-full py-2 ${theme.accentBg} hover:opacity-90 rounded-xl text-xs font-semibold transition-all`}
                             >
-                              Tinjau & Beri Masukan Dosen
+                              Tinjau & Beri Masukan
                             </button>
                           ) : (
                             <div className="bg-slate-950/60 p-2.5 rounded-xl border border-white/5 text-[10px] text-slate-400">
