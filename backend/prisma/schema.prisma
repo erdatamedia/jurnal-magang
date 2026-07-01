@@ -1,0 +1,106 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  name            String
+  role            String           // "admin", "student", "mentor", "advisor"
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  
+  student         Student?
+  companyMentor   CompanyMentor?
+  academicAdvisor AcademicAdvisor?
+}
+
+model Student {
+  id              String                @id @default(uuid())
+  userId          String                @unique
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nim             String                @unique
+  phone           String?
+  department      String
+  class           String
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  placements      InternshipPlacement[]
+}
+
+model CompanyMentor {
+  id              String                @id @default(uuid())
+  userId          String                @unique
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName     String
+  position        String?
+  phone           String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  placements      InternshipPlacement[]
+}
+
+model AcademicAdvisor {
+  id              String                @id @default(uuid())
+  userId          String                @unique
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nidn            String                @unique
+  phone           String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  placements      InternshipPlacement[]
+}
+
+model InternshipPlacement {
+  id                String           @id @default(uuid())
+  studentId         String
+  student           Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  companyMentorId   String
+  companyMentor     CompanyMentor    @relation(fields: [companyMentorId], references: [id], onDelete: Cascade)
+  academicAdvisorId String
+  academicAdvisor   AcademicAdvisor  @relation(fields: [academicAdvisorId], references: [id], onDelete: Cascade)
+  startDate         DateTime
+  endDate           DateTime
+  status            String           // "active", "completed"
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  journalEntries    JournalEntry[]
+  assessments       Assessment[]
+}
+
+model JournalEntry {
+  id              String              @id @default(uuid())
+  placementId     String
+  placement       InternshipPlacement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  date            DateTime
+  taskDescription String
+  learningOutcomes String
+  hoursWorked     Float
+  attachmentPath  String?
+  status          String              // "pending", "approved", "rejected"
+  mentorFeedback  String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+model Assessment {
+  id            String              @id @default(uuid())
+  placementId   String
+  placement     InternshipPlacement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  mentorGrade   Float?
+  advisorGrade  Float?
+  finalGrade    Float?
+  comments      String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
