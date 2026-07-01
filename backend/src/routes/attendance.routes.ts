@@ -219,4 +219,51 @@ router.get('/history', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// GET /mentor - Get all attendance history of students assigned to this mentor
+router.get('/mentor', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'mentor') {
+      res.status(403).json({ message: 'Only mentors can view student attendance' });
+      return;
+    }
+
+    const mentorId = req.user.mentorId;
+    if (!mentorId) {
+      res.status(400).json({ message: 'Mentor profile ID not found' });
+      return;
+    }
+
+    const placements = await prisma.internshipPlacement.findMany({
+      where: { companyMentorId: mentorId },
+      select: { id: true, student: { include: { user: true } } }
+    });
+
+    const placementIds = placements.map(p => p.id);
+
+    const attendance = await prisma.attendance.findMany({
+      where: { placementId: { in: placementIds } },
+      orderBy: { date: 'desc' }
+    });
+
+    // Map placement student info to each attendance record
+    const attendanceWithStudent = attendance.map(a => {
+      const placement = placements.find(p => p.id === a.placementId);
+      return {
+        ...a,
+        studentName: placement?.student?.user?.name || 'Siswa',
+        nim: placement?.student?.nim || '-',
+        department: placement?.student?.department || '-',
+        class: placement?.student?.class || '-'
+      };
+    });
+
+    res.json({ attendance: attendanceWithStudent });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to retrieve student attendance history',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 export default router;

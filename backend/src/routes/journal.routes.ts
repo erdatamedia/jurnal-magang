@@ -138,4 +138,104 @@ router.post('/', async (req: AuthenticatedRequest, res: Response) => {
   }
 });
 
+// GET /mentor - Get all journals of students assigned to this mentor
+router.get('/mentor', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'mentor') {
+      res.status(403).json({ message: 'Only mentors can view student journals' });
+      return;
+    }
+
+    const mentorId = req.user.mentorId;
+    if (!mentorId) {
+      res.status(400).json({ message: 'Mentor profile ID not found' });
+      return;
+    }
+
+    const placements = await prisma.internshipPlacement.findMany({
+      where: { companyMentorId: mentorId },
+      select: { id: true, student: { include: { user: true } } }
+    });
+
+    const placementIds = placements.map(p => p.id);
+
+    const journals = await prisma.journalEntry.findMany({
+      where: { placementId: { in: placementIds } },
+      orderBy: { date: 'desc' }
+    });
+
+    // Map placement student info to each journal
+    const journalsWithStudent = journals.map(j => {
+      const placement = placements.find(p => p.id === j.placementId);
+      return {
+        ...j,
+        studentName: placement?.student?.user?.name || 'Siswa',
+        nim: placement?.student?.nim || '-',
+        department: placement?.student?.department || '-',
+        class: placement?.student?.class || '-'
+      };
+    });
+
+    res.json({ journals: journalsWithStudent });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to retrieve student journals',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// PUT /:id/status - Approve or reject a journal entry with feedback
+router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user || req.user.role !== 'mentor') {
+      res.status(403).json({ message: 'Only mentors can review journals' });
+      return;
+    }
+
+    const { status, mentorFeedback } = req.body;
+
+    if (!['approved', 'rejected', 'pending'].includes(status)) {
+      res.status(400).json({ message: 'Invalid status value' });
+      return;
+    }
+
+    // Verify journal exists and belongs to a placement assigned to this mentor
+    const journal = await prisma.journalEntry.findUnique({
+      where: { id: req.params.id },
+      include: {
+        placement: true
+      }
+    });
+
+    if (!journal) {
+      res.status(404).json({ message: 'Journal entry not found' });
+      return;
+    }
+
+    if (journal.placement.companyMentorId !== req.user.mentorId) {
+      res.status(403).json({ message: 'You are not authorized to review this student\'s journal' });
+      return;
+    }
+
+    const updatedJournal = await prisma.journalEntry.update({
+      where: { id: req.params.id },
+      data: {
+        status,
+        mentorFeedback: mentorFeedback || null
+      }
+    });
+
+    res.json({
+      message: `Journal entry has been ${status}`,
+      journal: updatedJournal
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to update journal status',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
 export default router;

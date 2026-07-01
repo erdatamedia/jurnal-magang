@@ -46,4 +46,7 @@ export const api = {
   
   post: (endpoint: string, body?: any, headers?: Record<string, string>) => 
     request(endpoint, { method: 'POST', body, headers }),
+  
+  put: (endpoint: string, body?: any, headers?: Record<string, string>) => 
+    request(endpoint, { method: 'PUT', body, headers }),
 };

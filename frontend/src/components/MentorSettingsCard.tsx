@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { getThemeClasses } from '@/lib/theme';
 
 interface MentorProfile {
   companyName: string;
   position?: string;
   phone?: string;
   companyLogo?: string | null;
+  themeColor?: string;
 }
 
 interface MentorSettingsCardProps {
@@ -22,11 +24,14 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
+  const [themeColor, setThemeColor] = useState(initialProfile.themeColor || 'yellow');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Set initial preview if existing logo is in DB
+  const theme = getThemeClasses(themeColor);
+
+  // Set initial preview and theme if existing in DB
   useEffect(() => {
     if (initialProfile.companyLogo) {
       const host = typeof window !== 'undefined'
@@ -34,7 +39,10 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
         : 'http://localhost:5005';
       setLogoPreview(`${host}${initialProfile.companyLogo}`);
     }
-  }, [initialProfile.companyLogo]);
+    if (initialProfile.themeColor) {
+      setThemeColor(initialProfile.themeColor);
+    }
+  }, [initialProfile.companyLogo, initialProfile.themeColor]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError('');
@@ -128,7 +136,8 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
           companyName,
           position,
           phone,
-          companyLogo: logoBase64 || initialProfile.companyLogo
+          companyLogo: logoBase64 || initialProfile.companyLogo,
+          themeColor
         })
       });
 
@@ -158,8 +167,11 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
 
   return (
     <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl relative overflow-hidden">
+      {/* Background radial accent */}
+      <div className={`absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 ${theme.accentGlow} rounded-full blur-2xl pointer-events-none`} />
+
       <h3 className="text-lg font-bold text-slate-200 mb-6 border-b border-white/5 pb-3">
-        🏢 Pengaturan Perusahaan & Logo
+        🏢 Pengaturan Instansi Magang
       </h3>
 
       {error && (
@@ -169,18 +181,15 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
       )}
 
       {success && (
-        <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs flex items-center">
-          <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          Profil perusahaan berhasil diperbarui secara dinamis!
+        <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs">
+          Profil instansi, logo, dan tema warna berhasil diperbarui secara dinamis!
         </div>
       )}
 
       <form onSubmit={handleFormSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
-            Nama Perusahaan (PT / CV / Instansi)
+            Nama Instansi / Perusahaan (DUDI)
           </label>
           <input
             type="text"
@@ -188,7 +197,7 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             placeholder="Contoh: PT Inovasi Teknologi"
-            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+            className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
           />
         </div>
 
@@ -202,7 +211,7 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
               value={position}
               onChange={(e) => setPosition(e.target.value)}
               placeholder="Contoh: Senior Software Engineer"
-              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+              className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
             />
           </div>
 
@@ -215,9 +224,40 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Contoh: 0898xxxx"
-              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+              className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
             />
           </div>
+        </div>
+
+        {/* Dynamic Color Theme Selector */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+            Tema Warna Kustom Portal
+          </label>
+          <div className="grid grid-cols-4 gap-2">
+            {([
+              { id: 'yellow', label: '🟡 Kuning & Abu' },
+              { id: 'violet', label: '🟣 Ungu' },
+              { id: 'emerald', label: '🟢 Hijau' },
+              { id: 'blue', label: '🔵 Biru' }
+            ] as const).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setThemeColor(t.id)}
+                className={`py-2.5 px-1 rounded-xl border text-[10px] font-semibold tracking-wide transition-all cursor-pointer text-center ${
+                  themeColor === t.id
+                    ? `${theme.accentBg} border-transparent shadow-md`
+                    : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-950/70 hover:text-slate-300'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[9px] text-slate-500 mt-1.5 italic">
+            * Menyesuaikan skema warna dashboard siswa bimbingan Anda secara instan.
+          </p>
         </div>
 
         <div>
@@ -225,8 +265,8 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
             Logo Perusahaan / Instansi (Maks 2MB)
           </label>
           <div className="flex items-center space-x-4">
-            <label className="flex items-center justify-center px-4 py-2.5 bg-slate-950/50 border border-white/10 hover:border-violet-500 rounded-xl cursor-pointer text-xs font-semibold text-slate-300 hover:text-slate-200 transition duration-300">
-              <svg className="w-4 h-4 mr-2 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <label className={`flex items-center justify-center px-4 py-2.5 bg-slate-950/50 border border-white/10 hover:border-${theme.accentText.replace('text-', '')} rounded-xl cursor-pointer text-xs font-semibold text-slate-300 hover:text-slate-200 transition duration-300`}>
+              <svg className={`w-4 h-4 mr-2 ${theme.accentText}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Pilih Logo Baru
@@ -265,7 +305,7 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
         <button
           type="submit"
           disabled={loading}
-          className="w-full mt-4 py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98] text-white rounded-2xl text-xs font-semibold tracking-wider shadow-lg shadow-violet-600/10 hover:shadow-violet-600/20 transition-all duration-300 cursor-pointer text-center"
+          className={`w-full mt-4 py-3.5 ${theme.buttonGradient} active:scale-[0.98] rounded-2xl text-xs font-semibold tracking-wider shadow-lg transition-all duration-300 cursor-pointer text-center`}
         >
           {loading ? 'Menyimpan Perubahan...' : 'SIMPAN PERUBAHAN PROFILE'}
         </button>

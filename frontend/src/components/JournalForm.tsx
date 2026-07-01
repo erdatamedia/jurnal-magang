@@ -2,12 +2,15 @@
 
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { getThemeClasses } from '@/lib/theme';
 
 interface JournalFormProps {
   onJournalCreated: () => void;
+  themeColor?: string;
 }
 
-export default function JournalForm({ onJournalCreated }: JournalFormProps) {
+export default function JournalForm({ onJournalCreated, themeColor = 'yellow' }: JournalFormProps) {
+  const theme = getThemeClasses(themeColor);
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [taskDescription, setTaskDescription] = useState('');
   const [learningOutcomes, setLearningOutcomes] = useState('');
@@ -111,10 +114,10 @@ export default function JournalForm({ onJournalCreated }: JournalFormProps) {
             </label>
             <input
               type="date"
-              required
+                            required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+              className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
             />
           </div>
 
@@ -129,7 +132,7 @@ export default function JournalForm({ onJournalCreated }: JournalFormProps) {
               max={24}
               value={hoursWorked}
               onChange={(e) => setHoursWorked(e.target.value)}
-              className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+              className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
             />
           </div>
         </div>
@@ -144,7 +147,7 @@ export default function JournalForm({ onJournalCreated }: JournalFormProps) {
             value={taskDescription}
             onChange={(e) => setTaskDescription(e.target.value)}
             placeholder="Tuliskan rincian apa saja yang Anda kerjakan hari ini..."
-            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+            className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
           />
         </div>
 
@@ -158,7 +161,7 @@ export default function JournalForm({ onJournalCreated }: JournalFormProps) {
             value={learningOutcomes}
             onChange={(e) => setLearningOutcomes(e.target.value)}
             placeholder="Apa pelajaran, wawasan, atau kompetensi baru yang Anda dapatkan?"
-            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+            className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
           />
         </div>
 
@@ -167,8 +170,8 @@ export default function JournalForm({ onJournalCreated }: JournalFormProps) {
             Dokumentasi / Foto Kegiatan (Maks 2MB)
           </label>
           <div className="flex items-center space-x-4">
-            <label className="flex items-center justify-center px-4 py-2.5 bg-slate-950/50 border border-white/10 hover:border-violet-500 rounded-xl cursor-pointer text-xs font-semibold text-slate-300 hover:text-slate-200 transition duration-300">
-              <svg className="w-4 h-4 mr-2 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <label className={`flex items-center justify-center px-4 py-2.5 bg-slate-950/50 border border-white/10 hover:border-${theme.accentText.replace('text-', '')} rounded-xl cursor-pointer text-xs font-semibold text-slate-300 hover:text-slate-200 transition duration-300`}>
+              <svg className={`w-4 h-4 mr-2 ${theme.accentText}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               Pilih Gambar
@@ -211,7 +214,7 @@ export default function JournalForm({ onJournalCreated }: JournalFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full mt-4 py-3.5 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98] text-white rounded-2xl text-xs font-semibold tracking-wider shadow-lg shadow-violet-600/10 hover:shadow-violet-600/20 transition-all duration-300 cursor-pointer text-center"
+          className={`w-full mt-4 py-3.5 ${theme.buttonGradient} active:scale-[0.98] rounded-2xl text-xs font-semibold tracking-wider shadow-lg transition-all duration-300 cursor-pointer text-center`}
         >
           {loading ? 'Mengirim Jurnal...' : 'KIRIM JURNAL HARIAN'}
         </button>

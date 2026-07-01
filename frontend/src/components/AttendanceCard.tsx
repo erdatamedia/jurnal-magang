@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { getThemeClasses } from '@/lib/theme';
 
 interface Attendance {
   id: string;
@@ -14,9 +15,11 @@ interface Attendance {
 interface AttendanceCardProps {
   initialAttendance: Attendance | null;
   onAttendanceChange: () => void;
+  themeColor?: string;
 }
 
-export default function AttendanceCard({ initialAttendance, onAttendanceChange }: AttendanceCardProps) {
+export default function AttendanceCard({ initialAttendance, onAttendanceChange, themeColor = 'yellow' }: AttendanceCardProps) {
+  const theme = getThemeClasses(themeColor);
   const [time, setTime] = useState<string>('');
   const [dateStr, setDateStr] = useState<string>('');
   const [status, setStatus] = useState<'HADIR' | 'SAKIT' | 'IZIN'>('HADIR');
@@ -83,7 +86,7 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
   return (
     <div className="bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-3xl p-6 shadow-xl relative overflow-hidden">
       {/* Background radial accent */}
-      <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 bg-violet-600/10 rounded-full blur-2xl pointer-events-none" />
+      <div className={`absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-48 h-48 ${theme.accentGlow} rounded-full blur-2xl pointer-events-none`} />
 
       {/* Clock and date */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center border-b border-white/5 pb-4 mb-6">
@@ -91,7 +94,7 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
           <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Waktu Presensi</p>
           <h3 className="text-lg font-bold text-slate-200 mt-1">{dateStr || 'Loading...'}</h3>
         </div>
-        <div className="mt-2 md:mt-0 font-mono text-3xl font-bold bg-gradient-to-r from-violet-400 to-emerald-400 bg-clip-text text-transparent tracking-widest">
+        <div className={`mt-2 md:mt-0 font-mono text-3xl font-bold bg-gradient-to-r ${theme.accentText === 'text-yellow-400' ? 'from-yellow-400 to-amber-300' : 'from-violet-400 to-emerald-400'} bg-clip-text text-transparent tracking-widest`}>
           {time || '00:00:00'}
         </div>
       </div>
@@ -130,8 +133,8 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
       ) : isCheckedIn ? (
         /* Logic for Checked-In State (Waiting to Check-Out) */
         <div className="space-y-6">
-          <div className="flex items-center space-x-4 bg-violet-600/10 border border-violet-500/20 rounded-2xl p-4 text-sm text-slate-300">
-            <div className="p-2 bg-violet-500/20 rounded-xl text-violet-400">
+          <div className={`flex items-center space-x-4 ${theme.accentGlow} border ${theme.accentBorder} rounded-2xl p-4 text-sm text-slate-300`}>
+            <div className={`p-2 ${theme.accentGlow} rounded-xl ${theme.accentText}`}>
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
@@ -139,7 +142,7 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
             <div>
               <p className="text-xs text-slate-500 font-medium">STATUS SEKARANG</p>
               <p className="font-semibold text-slate-200 mt-0.5">
-                Sudah Check-In pukul <span className="text-violet-400">{formatTime(initialAttendance.checkIn)}</span>
+                Sudah Check-In pukul <span className={theme.accentText}>{formatTime(initialAttendance.checkIn)}</span>
               </p>
             </div>
           </div>
@@ -167,7 +170,7 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
                   onClick={() => setStatus(s)}
                   className={`py-2 px-3 rounded-xl border text-xs font-semibold tracking-wide transition-all cursor-pointer text-center ${
                     status === s
-                      ? 'bg-violet-600 border-violet-500 text-white shadow-md shadow-violet-600/20'
+                      ? `${theme.accentBg} border-transparent shadow-md`
                       : 'bg-slate-950/40 border-white/5 text-slate-400 hover:bg-slate-950/70 hover:text-slate-300'
                   }`}
                 >
@@ -188,7 +191,7 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Tuliskan keterangan sakit atau keperluan izin secara jelas..."
                 rows={3}
-                className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none focus:border-violet-500 transition duration-300 text-xs"
+                className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
               />
             </div>
           )}
@@ -196,7 +199,7 @@ export default function AttendanceCard({ initialAttendance, onAttendanceChange }
           <button
             onClick={handleCheckIn}
             disabled={loading}
-            className="w-full py-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 active:scale-[0.98] text-white rounded-2xl text-sm font-semibold tracking-wider shadow-lg shadow-violet-600/10 hover:shadow-violet-600/20 transition-all duration-300 cursor-pointer text-center"
+            className={`w-full py-4 ${theme.buttonGradient} active:scale-[0.98] rounded-2xl text-sm font-semibold tracking-wider transition-all duration-300 cursor-pointer text-center`}
           >
             {loading ? 'Memproses Check-In...' : 'CHECK-IN PRESENSI'}
           </button>

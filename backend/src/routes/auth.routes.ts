@@ -264,7 +264,7 @@ router.put('/mentor/profile', authenticateToken, async (req: AuthenticatedReques
       return;
     }
 
-    const { companyName, position, phone, companyLogo } = req.body;
+    const { companyName, position, phone, companyLogo, themeColor } = req.body;
 
     if (!companyName) {
       res.status(400).json({ message: 'Company name is required' });
@@ -294,6 +294,7 @@ router.put('/mentor/profile', authenticateToken, async (req: AuthenticatedReques
         companyName,
         position: position || null,
         phone: phone || null,
+        themeColor: themeColor || undefined,
         ...(logoPath !== undefined ? { companyLogo: logoPath } : {}),
       },
     });

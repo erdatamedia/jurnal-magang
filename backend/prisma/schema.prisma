@@ -43,6 +43,7 @@ model CompanyMentor {
   companyLogo     String?
   position        String?
   phone           String?
+  themeColor      String                @default("yellow")
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
   
