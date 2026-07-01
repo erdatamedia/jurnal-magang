@@ -201,12 +201,12 @@ router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     // Verify journal exists and belongs to a placement assigned to this mentor
-    const journal = await prisma.journalEntry.findUnique({
-      where: { id: req.params.id },
+    const journal = (await prisma.journalEntry.findUnique({
+      where: { id: req.params.id as string },
       include: {
         placement: true
       }
-    });
+    })) as any;
 
     if (!journal) {
       res.status(404).json({ message: 'Journal entry not found' });
@@ -219,7 +219,7 @@ router.put('/:id/status', async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const updatedJournal = await prisma.journalEntry.update({
-      where: { id: req.params.id },
+      where: { id: req.params.id as string },
       data: {
         status,
         mentorFeedback: mentorFeedback || null
