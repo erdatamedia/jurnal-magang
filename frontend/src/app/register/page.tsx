@@ -184,11 +184,6 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="bg-slate-950/40 border border-white/5 rounded-2xl p-4 text-xs text-slate-400 space-y-1">
-              <span className="text-violet-400 font-semibold block mb-1">💡 Catatan Penempatan:</span>
-              Setelah mendaftar, akun Anda akan otomatis terhubung dengan pembimbing dan instansi industri demo (PT Inovasi Teknologi) agar Anda bisa langsung mencoba simulasi absensi dan pengisian jurnal.
-            </div>
-
             <button
               type="submit"
               disabled={loading}

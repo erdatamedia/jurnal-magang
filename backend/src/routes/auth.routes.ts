@@ -45,7 +45,7 @@ router.post('/register', async (req, res: Response) => {
         if (!nim || !department || !className) {
           throw new Error('Missing student details (nim, department, class)');
         }
-        await tx.student.create({
+        const newStudent = await tx.student.create({
           data: {
             userId: newUser.id,
             nim,
@@ -54,6 +54,27 @@ router.post('/register', async (req, res: Response) => {
             phone,
           },
         });
+
+        // Automatically assign active internship placement to default mentor & advisor
+        const defaultMentor = await tx.companyMentor.findFirst();
+        const defaultAdvisor = await tx.academicAdvisor.findFirst();
+
+        if (defaultMentor && defaultAdvisor) {
+          const startDate = new Date();
+          const endDate = new Date();
+          endDate.setMonth(endDate.getMonth() + 3); // 3 months duration
+
+          await tx.internshipPlacement.create({
+            data: {
+              studentId: newStudent.id,
+              companyMentorId: defaultMentor.id,
+              academicAdvisorId: defaultAdvisor.id,
+              startDate,
+              endDate,
+              status: 'active',
+            },
+          });
+        }
       } else if (role === 'mentor') {
         const { companyName, position, phone } = details || {};
         if (!companyName) {

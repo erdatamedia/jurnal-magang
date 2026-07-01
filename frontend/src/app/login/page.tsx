@@ -117,15 +117,6 @@ export default function LoginPage() {
               )}
             </button>
           </form>
-
-          {/* Seed accounts helper hint */}
-          <div className="mt-6 pt-6 border-t border-white/5 text-center text-xs text-slate-500">
-            <p>Akun Demo Default:</p>
-            <div className="mt-2 font-mono text-slate-400 space-y-1">
-              <p>Email: <span className="text-violet-400/80">student@example.com</span></p>
-              <p>Pass : <span className="text-slate-300">password123</span></p>
-            </div>
-          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">
