@@ -40,6 +40,7 @@ model CompanyMentor {
   userId          String                @unique
   user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   companyName     String
+  companyLogo     String?
   position        String?
   phone           String?
   createdAt       DateTime              @default(now())
@@ -76,6 +77,20 @@ model InternshipPlacement {
   
   journalEntries    JournalEntry[]
   assessments       Assessment[]
+  attendances       Attendance[]
+}
+
+model Attendance {
+  id           String              @id @default(uuid())
+  placementId  String
+  placement    InternshipPlacement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  date         DateTime            // Tanggal absensi (YYYY-MM-DD)
+  checkIn      DateTime?           // Waktu Check-In
+  checkOut     DateTime?           // Waktu Check-Out
+  status       String              // "HADIR", "SAKIT", "IZIN", "ALFA"
+  notes        String?             // Catatan (alasan sakit/izin, dll.)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 model JournalEntry {

@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Backend API for Jurnal Magang System",
   "main": "dist/server.js",
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
