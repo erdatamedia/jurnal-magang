@@ -41,7 +41,7 @@ router.post('/register', async (req, res: Response) => {
       });
 
       if (role === 'student') {
-        const { nim, department, class: className, phone } = details || {};
+        const { nim, department, class: className, phone, companyMentorId, academicAdvisorId } = details || {};
         if (!nim || !department || !className) {
           throw new Error('Missing student details (nim, department, class)');
         }
@@ -55,11 +55,11 @@ router.post('/register', async (req, res: Response) => {
           },
         });
 
-        // Automatically assign active internship placement to default mentor & advisor
-        const defaultMentor = await tx.companyMentor.findFirst();
-        const defaultAdvisor = await tx.academicAdvisor.findFirst();
+        // Select mentor and advisor dynamically or fallback to first available
+        const mentorId = companyMentorId || (await tx.companyMentor.findFirst())?.id;
+        const advisorId = academicAdvisorId || (await tx.academicAdvisor.findFirst())?.id;
 
-        if (defaultMentor && defaultAdvisor) {
+        if (mentorId && advisorId) {
           const startDate = new Date();
           const endDate = new Date();
           endDate.setMonth(endDate.getMonth() + 3); // 3 months duration
@@ -67,8 +67,8 @@ router.post('/register', async (req, res: Response) => {
           await tx.internshipPlacement.create({
             data: {
               studentId: newStudent.id,
-              companyMentorId: defaultMentor.id,
-              academicAdvisorId: defaultAdvisor.id,
+              companyMentorId: mentorId,
+              academicAdvisorId: advisorId,
               startDate,
               endDate,
               status: 'active',
@@ -285,7 +285,7 @@ router.put('/mentor/profile', authenticateToken, async (req: AuthenticatedReques
       return;
     }
 
-    const { companyName, position, phone, companyLogo, themeColor } = req.body;
+    const { name, companyName, position, phone, companyLogo, themeColor } = req.body;
 
     if (!companyName) {
       res.status(400).json({ message: 'Company name is required' });
@@ -309,15 +309,25 @@ router.put('/mentor/profile', authenticateToken, async (req: AuthenticatedReques
       }
     }
 
-    const updatedMentor = await prisma.companyMentor.update({
-      where: { userId: req.user.id },
-      data: {
-        companyName,
-        position: position || null,
-        phone: phone || null,
-        themeColor: themeColor || undefined,
-        ...(logoPath !== undefined ? { companyLogo: logoPath } : {}),
-      },
+    const userId = req.user.id;
+
+    const updatedMentor = await prisma.$transaction(async (tx) => {
+      if (name) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { name },
+        });
+      }
+      return tx.companyMentor.update({
+        where: { userId: userId },
+        data: {
+          companyName,
+          position: position || null,
+          phone: phone || null,
+          themeColor: themeColor || undefined,
+          ...(logoPath !== undefined ? { companyLogo: logoPath } : {}),
+        },
+      });
     });
 
     res.json({
@@ -328,6 +338,44 @@ router.put('/mentor/profile', authenticateToken, async (req: AuthenticatedReques
     res.status(500).json({
       message: 'Failed to update company profile',
       error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+// GET /mentors - Get list of mentors
+router.get('/mentors', async (req, res: Response) => {
+  try {
+    const mentors = await prisma.companyMentor.findMany({
+      include: {
+        user: {
+          select: { name: true }
+        }
+      }
+    });
+    res.json(mentors);
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to fetch mentors',
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+// GET /advisors - Get list of advisors
+router.get('/advisors', async (req, res: Response) => {
+  try {
+    const advisors = await prisma.academicAdvisor.findMany({
+      include: {
+        user: {
+          select: { name: true }
+        }
+      }
+    });
+    res.json(advisors);
+  } catch (error) {
+    res.status(500).json({
+      message: 'Failed to fetch advisors',
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 });

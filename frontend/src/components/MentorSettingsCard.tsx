@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { getThemeClasses } from '@/lib/theme';
 
 interface MentorProfile {
+  name?: string;
   companyName: string;
   position?: string;
   phone?: string;
@@ -18,6 +19,7 @@ interface MentorSettingsCardProps {
 }
 
 export default function MentorSettingsCard({ initialProfile, onProfileUpdated }: MentorSettingsCardProps) {
+  const [name, setName] = useState(initialProfile.name || '');
   const [companyName, setCompanyName] = useState(initialProfile.companyName || '');
   const [position, setPosition] = useState(initialProfile.position || '');
   const [phone, setPhone] = useState(initialProfile.phone || '');
@@ -42,7 +44,10 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
     if (initialProfile.themeColor) {
       setThemeColor(initialProfile.themeColor);
     }
-  }, [initialProfile.companyLogo, initialProfile.themeColor]);
+    if (initialProfile.name) {
+      setName(initialProfile.name);
+    }
+  }, [initialProfile.companyLogo, initialProfile.themeColor, initialProfile.name]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError('');
@@ -133,6 +138,7 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
+          name,
           companyName,
           position,
           phone,
@@ -187,6 +193,20 @@ export default function MentorSettingsCard({ initialProfile, onProfileUpdated }:
       )}
 
       <form onSubmit={handleFormSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+            Nama Lengkap Anda (Pembimbing Lapangan)
+          </label>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Contoh: Pak Eko"
+            className={`w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-2.5 text-slate-100 placeholder-slate-700 focus:outline-none ${theme.focusBorder} transition duration-300 text-xs`}
+          />
+        </div>
+
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
             Nama Instansi / Perusahaan (DUDI)
